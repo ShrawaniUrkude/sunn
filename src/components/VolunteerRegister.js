@@ -1,23 +1,25 @@
 import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import "../styles/global.css";
 
 const API_BASE_URL =
   process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
-const Register = ({ onSuccess }) => {
+const VolunteerRegister = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     phone: "",
-    role: "volunteer",
     city: "",
     state: "",
+    skills: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -34,7 +36,8 @@ const Register = ({ onSuccess }) => {
         email: formData.email,
         password: formData.password,
         phone: formData.phone,
-        role: formData.role,
+        role: "volunteer",
+        skills: formData.skills,
         location: { city: formData.city, state: formData.state },
       };
       const response = await axios.post(
@@ -43,8 +46,10 @@ const Register = ({ onSuccess }) => {
       );
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
-      if (rememberMe) localStorage.setItem("rememberedEmail", formData.email);
+      if (rememberMe)
+        localStorage.setItem("rememberedEmail_volunteer", formData.email);
       onSuccess();
+      navigate("/volunteer-dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");
     } finally {
@@ -60,7 +65,7 @@ const Register = ({ onSuccess }) => {
         alignItems: "center",
         justifyContent: "center",
         padding: "2rem",
-        background: "linear-gradient(135deg, #f0f2f5 0%, #e8edf5 100%)",
+        background: "linear-gradient(135deg, #f0fff4 0%, #e6ffed 100%)",
       }}
     >
       <div style={{ maxWidth: "480px", width: "100%" }}>
@@ -70,16 +75,16 @@ const Register = ({ onSuccess }) => {
               width: "72px",
               height: "72px",
               borderRadius: "20px",
-              background: "linear-gradient(135deg, #667eea, #764ba2)",
+              background: "linear-gradient(135deg, #48bb78, #38a169)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontSize: "2rem",
               margin: "0 auto 1rem",
-              boxShadow: "0 8px 30px rgba(102,126,234,0.3)",
+              boxShadow: "0 8px 30px rgba(72,187,120,0.3)",
             }}
           >
-            \ud83d\ude80
+            👥
           </div>
           <h1
             style={{
@@ -89,10 +94,10 @@ const Register = ({ onSuccess }) => {
               marginBottom: "0.25rem",
             }}
           >
-            Create Account
+            Become a Volunteer
           </h1>
           <p style={{ color: "#718096", fontSize: "0.95rem" }}>
-            Join the SUN community today
+            Lend your hands. Make an impact.
           </p>
         </div>
         <div className="card" style={{ padding: "2rem" }}>
@@ -106,12 +111,12 @@ const Register = ({ onSuccess }) => {
                 value={formData.name}
                 onChange={handleChange}
                 className="form-input"
-                placeholder="John Doe"
+                placeholder="Jane Doe"
                 required
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Email</label>
+              <label className="form-label">Email Address</label>
               <input
                 type="email"
                 name="email"
@@ -146,17 +151,15 @@ const Register = ({ onSuccess }) => {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Role</label>
-              <select
-                name="role"
-                value={formData.role}
+              <label className="form-label">Skills / Interests</label>
+              <input
+                type="text"
+                name="skills"
+                value={formData.skills}
                 onChange={handleChange}
                 className="form-input"
-                style={{ cursor: "pointer" }}
-              >
-                <option value="donor">Donor</option>
-                <option value="volunteer">Volunteer</option>
-              </select>
+                placeholder="e.g., Driving, Cooking, Distribution"
+              />
             </div>
             <div
               style={{
@@ -213,7 +216,7 @@ const Register = ({ onSuccess }) => {
                   style={{
                     width: "16px",
                     height: "16px",
-                    accentColor: "#667eea",
+                    accentColor: "#48bb78",
                     cursor: "pointer",
                   }}
                 />
@@ -224,15 +227,40 @@ const Register = ({ onSuccess }) => {
               type="submit"
               className="btn btn-primary"
               disabled={loading}
-              style={{ width: "100%", padding: "14px", fontSize: "1rem" }}
+              style={{
+                width: "100%",
+                padding: "14px",
+                fontSize: "1rem",
+                background: "linear-gradient(135deg, #48bb78, #38a169)",
+              }}
             >
-              {loading ? "Creating account..." : "Create Account"}
+              {loading ? "Creating account..." : "Join as Volunteer"}
             </button>
           </form>
         </div>
+        <p
+          style={{
+            textAlign: "center",
+            marginTop: "1.5rem",
+            color: "#718096",
+            fontSize: "0.9rem",
+          }}
+        >
+          Already have an account?{" "}
+          <Link
+            to="/volunteer-login"
+            style={{
+              color: "#48bb78",
+              fontWeight: 600,
+              textDecoration: "none",
+            }}
+          >
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );
 };
 
-export default Register;
+export default VolunteerRegister;

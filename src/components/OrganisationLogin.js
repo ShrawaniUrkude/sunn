@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import "../styles/global.css";
 
 const API_BASE_URL =
   process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
-const Login = ({ onSuccess }) => {
+const OrganisationLogin = ({ onSuccess }) => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(
-    () => !!localStorage.getItem("rememberedEmail"),
+    () => !!localStorage.getItem("rememberedEmail_organisation"),
   );
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const saved = localStorage.getItem("rememberedEmail");
+    const saved = localStorage.getItem("rememberedEmail_organisation");
     if (saved) setFormData((prev) => ({ ...prev, email: saved }));
   }, []);
 
@@ -32,11 +34,19 @@ const Login = ({ onSuccess }) => {
         `${API_BASE_URL}/users/login`,
         formData,
       );
+      const user = response.data.user;
+      if (user.role !== "organisation") {
+        setError("This login is for organisations only.");
+        setLoading(false);
+        return;
+      }
       localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-      if (rememberMe) localStorage.setItem("rememberedEmail", formData.email);
-      else localStorage.removeItem("rememberedEmail");
+      localStorage.setItem("user", JSON.stringify(user));
+      if (rememberMe)
+        localStorage.setItem("rememberedEmail_organisation", formData.email);
+      else localStorage.removeItem("rememberedEmail_organisation");
       onSuccess();
+      navigate("/organisation-dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
     } finally {
@@ -52,26 +62,26 @@ const Login = ({ onSuccess }) => {
         alignItems: "center",
         justifyContent: "center",
         padding: "2rem",
-        background: "linear-gradient(135deg, #f0f2f5 0%, #e8edf5 100%)",
+        background: "linear-gradient(135deg, #f0f2f5 0%, #fef5e7 100%)",
       }}
     >
-      <div style={{ maxWidth: "420px", width: "100%" }}>
+      <div style={{ maxWidth: "440px", width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
           <div
             style={{
               width: "72px",
               height: "72px",
               borderRadius: "20px",
-              background: "linear-gradient(135deg, #667eea, #764ba2)",
+              background: "linear-gradient(135deg, #ed8936, #dd6b20)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontSize: "2rem",
               margin: "0 auto 1rem",
-              boxShadow: "0 8px 30px rgba(102,126,234,0.3)",
+              boxShadow: "0 8px 30px rgba(237,137,54,0.3)",
             }}
           >
-            \u2728
+            🏢
           </div>
           <h1
             style={{
@@ -81,24 +91,24 @@ const Login = ({ onSuccess }) => {
               marginBottom: "0.25rem",
             }}
           >
-            Welcome Back
+            Organisation Login
           </h1>
           <p style={{ color: "#718096", fontSize: "0.95rem" }}>
-            Sign in to your account
+            Sign in to manage your organisation.
           </p>
         </div>
         <div className="card" style={{ padding: "2rem" }}>
           {error && <div className="alert alert-error">{error}</div>}
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label className="form-label">Email</label>
+              <label className="form-label">Email Address</label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 className="form-input"
-                placeholder="you@example.com"
+                placeholder="org@example.com"
                 required
               />
             </div>
@@ -110,7 +120,7 @@ const Login = ({ onSuccess }) => {
                 value={formData.password}
                 onChange={handleChange}
                 className="form-input"
-                placeholder="Your password"
+                placeholder="Enter your password"
                 required
               />
             </div>
@@ -139,7 +149,7 @@ const Login = ({ onSuccess }) => {
                   style={{
                     width: "16px",
                     height: "16px",
-                    accentColor: "#667eea",
+                    accentColor: "#ed8936",
                     cursor: "pointer",
                   }}
                 />
@@ -148,17 +158,44 @@ const Login = ({ onSuccess }) => {
             </div>
             <button
               type="submit"
-              className="btn btn-primary"
+              className="btn"
               disabled={loading}
-              style={{ width: "100%", padding: "14px", fontSize: "1rem" }}
+              style={{
+                width: "100%",
+                padding: "14px",
+                fontSize: "1rem",
+                background: "linear-gradient(135deg, #ed8936, #dd6b20)",
+                color: "white",
+                boxShadow: "0 4px 15px rgba(237,137,54,0.4)",
+              }}
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
         </div>
+        <p
+          style={{
+            textAlign: "center",
+            marginTop: "1.5rem",
+            color: "#718096",
+            fontSize: "0.9rem",
+          }}
+        >
+          Don't have an account?{" "}
+          <Link
+            to="/organisation-register"
+            style={{
+              color: "#ed8936",
+              fontWeight: 600,
+              textDecoration: "none",
+            }}
+          >
+            Register here
+          </Link>
+        </p>
       </div>
     </div>
   );
 };
 
-export default Login;
+export default OrganisationLogin;

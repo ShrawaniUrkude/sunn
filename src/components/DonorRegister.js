@@ -1,23 +1,24 @@
 import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import "../styles/global.css";
 
 const API_BASE_URL =
   process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
-const Register = ({ onSuccess }) => {
+const DonorRegister = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     phone: "",
-    role: "volunteer",
     city: "",
     state: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -34,7 +35,7 @@ const Register = ({ onSuccess }) => {
         email: formData.email,
         password: formData.password,
         phone: formData.phone,
-        role: formData.role,
+        role: "donor",
         location: { city: formData.city, state: formData.state },
       };
       const response = await axios.post(
@@ -43,8 +44,10 @@ const Register = ({ onSuccess }) => {
       );
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
-      if (rememberMe) localStorage.setItem("rememberedEmail", formData.email);
+      if (rememberMe)
+        localStorage.setItem("rememberedEmail_donor", formData.email);
       onSuccess();
+      navigate("/donor-dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");
     } finally {
@@ -70,7 +73,7 @@ const Register = ({ onSuccess }) => {
               width: "72px",
               height: "72px",
               borderRadius: "20px",
-              background: "linear-gradient(135deg, #667eea, #764ba2)",
+              background: "linear-gradient(135deg, #667eea, #5a67d8)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -79,7 +82,7 @@ const Register = ({ onSuccess }) => {
               boxShadow: "0 8px 30px rgba(102,126,234,0.3)",
             }}
           >
-            \ud83d\ude80
+            🎁
           </div>
           <h1
             style={{
@@ -89,10 +92,10 @@ const Register = ({ onSuccess }) => {
               marginBottom: "0.25rem",
             }}
           >
-            Create Account
+            Create Donor Account
           </h1>
           <p style={{ color: "#718096", fontSize: "0.95rem" }}>
-            Join the SUN community today
+            Start making a difference today.
           </p>
         </div>
         <div className="card" style={{ padding: "2rem" }}>
@@ -111,7 +114,7 @@ const Register = ({ onSuccess }) => {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Email</label>
+              <label className="form-label">Email Address</label>
               <input
                 type="email"
                 name="email"
@@ -144,19 +147,6 @@ const Register = ({ onSuccess }) => {
                 className="form-input"
                 placeholder="+91 98765 43210"
               />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Role</label>
-              <select
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="form-input"
-                style={{ cursor: "pointer" }}
-              >
-                <option value="donor">Donor</option>
-                <option value="volunteer">Volunteer</option>
-              </select>
             </div>
             <div
               style={{
@@ -230,9 +220,29 @@ const Register = ({ onSuccess }) => {
             </button>
           </form>
         </div>
+        <p
+          style={{
+            textAlign: "center",
+            marginTop: "1.5rem",
+            color: "#718096",
+            fontSize: "0.9rem",
+          }}
+        >
+          Already have an account?{" "}
+          <Link
+            to="/donor-login"
+            style={{
+              color: "#667eea",
+              fontWeight: 600,
+              textDecoration: "none",
+            }}
+          >
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );
 };
 
-export default Register;
+export default DonorRegister;
