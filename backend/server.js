@@ -1,22 +1,95 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
+
+// Import Models
+const User = require("./models/User");
+const Donation = require("./models/Donation");
 
 const app = express();
-const PORT = 5000;
-const JWT_SECRET = "sun-donation-secret-key-2026";
+const PORT = process.env.PORT || 5000;
+const JWT_SECRET = process.env.JWT_SECRET || "sun-donation-secret-key-2026";
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/sun-donation";
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
 // ============================================
-// In-memory database
+// MongoDB Connection
 // ============================================
-const users = [];
-const donations = [];
-let donationIdCounter = 1;
+mongoose
+  .connect(MONGODB_URI)
+  .then(() => console.log("✅ Connected to MongoDB"))
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
+
+// ============================================
+// Initialize seed data
+// ============================================
+const initializeSeedData = async () => {
+  try {
+    // Check if users already exist
+    const userCount = await User.countDocuments();
+    if (userCount > 0) {
+      console.log("✅ Database already has users, skipping seed data");
+      return;
+    }
+
+    // Create hashed passwords for demo users (password: "password123")
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash("password123", salt);
+
+    // Add demo users
+    const demoUsers = [
+      {
+        name: "John Donor",
+        email: "donor@example.com",
+        password: hashedPassword,
+        phone: "555-0101",
+        role: "donor",
+        location: { city: "New York", state: "NY" },
+        orgType: "",
+        skills: "",
+        points: 50,
+      },
+      {
+        name: "Save Lives Foundation",
+        email: "organisation@example.com",
+        password: hashedPassword,
+        phone: "555-0102",
+        role: "organisation",
+        location: { city: "San Francisco", state: "CA" },
+        orgType: "NGO",
+        skills: "Healthcare, Education",
+        points: 75,
+      },
+      {
+        name: "Sarah Volunteer",
+        email: "volunteer@example.com",
+        password: hashedPassword,
+        phone: "555-0103",
+        role: "volunteer",
+        location: { city: "Chicago", state: "IL" },
+        orgType: "",
+        skills: "Logistics, Community Outreach",
+        points: 120,
+        certificates: [{ name: "Active Contributor", awardedDate: new Date() }],
+      },
+    ];
+
+    await User.insertMany(demoUsers);
+    console.log("✅ Seed data initialized with 3 demo accounts");
+    console.log("\n  Demo Accounts (password: password123):");
+    console.log("    🎁 Donor:        donor@example.com");
+    console.log("    🏢 Organisation: organisation@example.com");
+    console.log("    👥 Volunteer:    volunteer@example.com\n");
+  } catch (error) {
+    console.error("❌ Error initializing seed data:", error);
+  }
+};
 
 // ============================================
 // Helper: Generate JWT
@@ -76,7 +149,7 @@ app.post("/api/users/register", async (req, res) => {
     }
 
     // Check duplicate email
-    const existingUser = users.find((u) => u.email === email.toLowerCase());
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return res
         .status(400)
@@ -88,9 +161,7 @@ app.post("/api/users/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create user
-    const newUser = {
-      id: String(users.length + 1),
-      _id: String(users.length + 1),
+    const newUser = new User({
       name,
       email: email.toLowerCase(),
       password: hashedPassword,
@@ -100,17 +171,12 @@ app.post("/api/users/register", async (req, res) => {
       orgType: orgType || "",
       skills: skills || "",
       points: 0,
-      donationsMade: [],
-      donationsReceived: [],
-      donationsClaimed: [],
-      certificates: [],
-      createdAt: new Date().toISOString(),
-    };
+    });
 
-    users.push(newUser);
+    await newUser.save();
 
     const token = generateToken(newUser);
-    res.status(201).json({ token, user: sanitizeUser(newUser) });
+    res.status(201).json({ token, user: sanitizeUser(newUser.toObject()) });
   } catch (err) {
     console.error("Register error:", err);
     res.status(500).json({ message: "Server error during registration" });
@@ -128,7 +194,7 @@ app.post("/api/users/login", async (req, res) => {
         .json({ message: "Email and password are required" });
     }
 
-    const user = users.find((u) => u.email === email.toLowerCase());
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
@@ -139,7 +205,7 @@ app.post("/api/users/login", async (req, res) => {
     }
 
     const token = generateToken(user);
-    res.json({ token, user: sanitizeUser(user) });
+    res.json({ token, user: sanitizeUser(user.toObject()) });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Server error during login" });
@@ -147,10 +213,15 @@ app.post("/api/users/login", async (req, res) => {
 });
 
 // GET /api/users/profile
-app.get("/api/users/profile", auth, (req, res) => {
-  const user = users.find((u) => u.id === req.user.id);
-  if (!user) return res.status(404).json({ message: "User not found" });
-  res.json(sanitizeUser(user));
+app.get("/api/users/profile", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(sanitizeUser(user.toObject()));
+  } catch (err) {
+    console.error("Profile error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 // ============================================
@@ -158,19 +229,22 @@ app.get("/api/users/profile", auth, (req, res) => {
 // ============================================
 
 // GET /api/donations
-app.get("/api/donations", (req, res) => {
-  const publicDonations = donations.map((d) => {
-    const donor = users.find((u) => u.id === d.donorId);
-    return {
-      ...d,
-      donor: donor ? { name: donor.name, _id: donor.id } : null,
-    };
-  });
-  res.json(publicDonations);
+app.get("/api/donations", async (req, res) => {
+  try {
+    const donations = await Donation.find().populate("donorId", "name");
+    const publicDonations = donations.map((d) => ({
+      ...d.toObject(),
+      donor: d.donorId ? { name: d.donorId.name, _id: d.donorId._id } : null,
+    }));
+    res.json(publicDonations);
+  } catch (err) {
+    console.error("Get donations error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 // POST /api/donations
-app.post("/api/donations", auth, (req, res) => {
+app.post("/api/donations", auth, async (req, res) => {
   try {
     const { title, description, category, quantity, condition, location } =
       req.body;
@@ -181,9 +255,7 @@ app.post("/api/donations", auth, (req, res) => {
         .json({ message: "Title and category are required" });
     }
 
-    const donation = {
-      id: String(donationIdCounter++),
-      _id: String(donationIdCounter - 1),
+    const donation = new Donation({
       title,
       description: description || "",
       category: category || "other",
@@ -192,23 +264,21 @@ app.post("/api/donations", auth, (req, res) => {
       location: location || { city: "", state: "" },
       status: "available",
       donorId: req.user.id,
-      claimedBy: null,
-      distributedBy: null,
-      createdAt: new Date().toISOString(),
-    };
+    });
 
-    donations.push(donation);
+    await donation.save();
 
-    // Add to donor's donationsMade
-    const donor = users.find((u) => u.id === req.user.id);
+    // Add to donor's donationsMade and update points
+    const donor = await User.findById(req.user.id);
     if (donor) {
       donor.donationsMade.push({
-        _id: donation.id,
+        _id: donation._id,
         title: donation.title,
         category: donation.category,
         status: donation.status,
       });
       donor.points += 10;
+      await donor.save();
     }
 
     res.status(201).json(donation);
@@ -219,112 +289,134 @@ app.post("/api/donations", auth, (req, res) => {
 });
 
 // GET /api/donations/:id
-app.get("/api/donations/:id", (req, res) => {
-  const donation = donations.find((d) => d.id === req.params.id);
-  if (!donation) return res.status(404).json({ message: "Donation not found" });
+app.get("/api/donations/:id", async (req, res) => {
+  try {
+    const donation = await Donation.findById(req.params.id).populate("donorId", "name");
+    if (!donation) return res.status(404).json({ message: "Donation not found" });
 
-  const donor = users.find((u) => u.id === donation.donorId);
-  res.json({
-    ...donation,
-    donor: donor ? { name: donor.name, _id: donor.id } : null,
-  });
+    res.json({
+      ...donation.toObject(),
+      donor: donation.donorId ? { name: donation.donorId.name, _id: donation.donorId._id } : null,
+    });
+  } catch (err) {
+    console.error("Get donation error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 // PUT /api/donations/:id/claim
-app.put("/api/donations/:id/claim", auth, (req, res) => {
-  const donation = donations.find((d) => d.id === req.params.id);
-  if (!donation) return res.status(404).json({ message: "Donation not found" });
+app.put("/api/donations/:id/claim", auth, async (req, res) => {
+  try {
+    const donation = await Donation.findById(req.params.id);
+    if (!donation) return res.status(404).json({ message: "Donation not found" });
 
-  if (donation.status !== "available") {
-    return res
-      .status(400)
-      .json({ message: "Donation is not available for claiming" });
+    if (donation.status !== "available") {
+      return res
+        .status(400)
+        .json({ message: "Donation is not available for claiming" });
+    }
+
+    donation.status = "claimed";
+    donation.claimedBy = req.user.id;
+    await donation.save();
+
+    // Update claimer's record
+    const claimer = await User.findById(req.user.id);
+    if (claimer) {
+      claimer.donationsClaimed.push({
+        _id: donation._id,
+        title: donation.title,
+        category: donation.category,
+        status: donation.status,
+      });
+      claimer.points += 5;
+      await claimer.save();
+    }
+
+    // Update donor's record
+    const donor = await User.findById(donation.donorId);
+    if (donor) {
+      const record = donor.donationsMade.find((d) => d._id.toString() === donation._id.toString());
+      if (record) {
+        record.status = "claimed";
+        await donor.save();
+      }
+    }
+
+    res.json(donation);
+  } catch (err) {
+    console.error("Claim donation error:", err);
+    res.status(500).json({ message: "Server error" });
   }
-
-  donation.status = "claimed";
-  donation.claimedBy = req.user.id;
-
-  const claimer = users.find((u) => u.id === req.user.id);
-  if (claimer) {
-    claimer.donationsClaimed.push({
-      _id: donation.id,
-      title: donation.title,
-      category: donation.category,
-      status: donation.status,
-    });
-    claimer.points += 5;
-  }
-
-  // Update donor's record
-  const donor = users.find((u) => u.id === donation.donorId);
-  if (donor) {
-    const record = donor.donationsMade.find((d) => d._id === donation.id);
-    if (record) record.status = "claimed";
-  }
-
-  res.json(donation);
 });
 
 // PUT /api/donations/:id/distribute
-app.put("/api/donations/:id/distribute", auth, (req, res) => {
-  const donation = donations.find((d) => d.id === req.params.id);
-  if (!donation) return res.status(404).json({ message: "Donation not found" });
+app.put("/api/donations/:id/distribute", auth, async (req, res) => {
+  try {
+    const donation = await Donation.findById(req.params.id);
+    if (!donation) return res.status(404).json({ message: "Donation not found" });
 
-  donation.status = "distributed";
-  donation.distributedBy = req.user.id;
+    donation.status = "distributed";
+    donation.distributedBy = req.user.id;
+    await donation.save();
 
-  const distributor = users.find((u) => u.id === req.user.id);
-  if (distributor) {
-    distributor.points += 5;
+    const distributor = await User.findById(req.user.id);
+    if (distributor) {
+      distributor.points += 5;
 
-    // Award certificate at milestones
-    const totalActions =
-      (distributor.donationsMade?.length || 0) +
-      (distributor.donationsClaimed?.length || 0);
-    if (
-      totalActions >= 5 &&
-      !distributor.certificates.find((c) => c.name === "Active Contributor")
-    ) {
-      distributor.certificates.push({
-        name: "Active Contributor",
-        awardedDate: new Date().toISOString(),
-      });
+      // Award certificate at milestones
+      const totalActions =
+        (distributor.donationsMade?.length || 0) +
+        (distributor.donationsClaimed?.length || 0);
+      if (
+        totalActions >= 5 &&
+        !distributor.certificates.find((c) => c.name === "Active Contributor")
+      ) {
+        distributor.certificates.push({
+          name: "Active Contributor",
+          awardedDate: new Date(),
+        });
+      }
+      if (
+        totalActions >= 10 &&
+        !distributor.certificates.find((c) => c.name === "Super Helper")
+      ) {
+        distributor.certificates.push({
+          name: "Super Helper",
+          awardedDate: new Date(),
+        });
+      }
+      await distributor.save();
     }
-    if (
-      totalActions >= 10 &&
-      !distributor.certificates.find((c) => c.name === "Super Helper")
-    ) {
-      distributor.certificates.push({
-        name: "Super Helper",
-        awardedDate: new Date().toISOString(),
-      });
-    }
+
+    res.json(donation);
+  } catch (err) {
+    console.error("Distribute donation error:", err);
+    res.status(500).json({ message: "Server error" });
   }
-
-  res.json(donation);
 });
 
 // ============================================
 // LEADERBOARD
 // ============================================
-app.get("/api/leaderboard", (req, res) => {
-  const leaderboard = users
-    .map((u) => ({
-      _id: u.id,
-      name: u.name,
-      role: u.role,
-      points: u.points,
-    }))
-    .sort((a, b) => b.points - a.points)
-    .slice(0, 20);
-
-  res.json(leaderboard);
+app.get("/api/leaderboard", async (req, res) => {
+  try {
+    const leaderboard = await User.find()
+      .select("name role points")
+      .sort({ points: -1 })
+      .limit(20);
+    res.json(leaderboard);
+  } catch (err) {
+    console.error("Leaderboard error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 // ============================================
 // START SERVER
 // ============================================
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+  await initializeSeedData();
   console.log(`\n  ✅ SUN Backend Server running on http://localhost:${PORT}`);
   console.log(`  📡 API Base: http://localhost:${PORT}/api`);
   console.log(`  🔗 Register: POST /api/users/register`);

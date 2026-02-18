@@ -131,7 +131,6 @@ const Leaderboard = () => {
               const u = leaderboard[pos];
               const medals = ["🥇", "🥈", "🥉"];
               const heights = ["140px", "170px", "120px"];
-              const colors = ["#C0C0C0", "#FFD700", "#CD7F32"];
               const gradients = [
                 "linear-gradient(135deg, #a0aec0, #718096)",
                 "linear-gradient(135deg, #f6e05e, #ecc94b)",
