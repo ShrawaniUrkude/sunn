@@ -262,6 +262,56 @@ const DonationDetail = ({ donationId, token, onClose }) => {
           </div>
         )}
 
+        {/* Location Map */}
+        {donation.location && (donation.location.city || donation.location.state) && (
+          <div
+            style={{
+              marginBottom: "1.25rem",
+              borderRadius: "12px",
+              overflow: "hidden",
+              border: "1px solid #e2e8f0",
+            }}
+          >
+            <div
+              style={{
+                padding: "0.75rem 1rem",
+                background: "#f7f8fc",
+                borderBottom: "1px solid #e2e8f0",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+              }}
+            >
+              <span style={{ fontSize: "1.1rem" }}>📍</span>
+              <div>
+                <div
+                  style={{
+                    fontWeight: 600,
+                    color: "#1a202c",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  Donation Location
+                </div>
+                <div style={{ fontSize: "0.8rem", color: "#718096" }}>
+                  {donation.location.city}, {donation.location.state}
+                </div>
+              </div>
+            </div>
+            <iframe
+              width="100%"
+              height="250"
+              style={{ border: 0 }}
+              loading="lazy"
+              allowFullScreen
+              referrerPolicy="no-referrer-when-downgrade"
+              src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(
+                `${donation.location.city}, ${donation.location.state}`
+              )}&zoom=12`}
+            ></iframe>
+          </div>
+        )}
+
         {/* Distribution Form */}
         {donation.status === "claimed" && token && (
           <div

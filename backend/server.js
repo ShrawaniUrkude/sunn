@@ -80,12 +80,81 @@ const initializeSeedData = async () => {
       },
     ];
 
-    await User.insertMany(demoUsers);
+    const createdUsers = await User.insertMany(demoUsers);
     console.log("✅ Seed data initialized with 3 demo accounts");
     console.log("\n  Demo Accounts (password: password123):");
     console.log("    🎁 Donor:        donor@example.com");
     console.log("    🏢 Organisation: organisation@example.com");
     console.log("    👥 Volunteer:    volunteer@example.com\n");
+
+    // Add demo donations
+    const demoDonations = [
+      {
+        title: "Fresh Vegetables & Fruits",
+        description: "Organic vegetables and fruits. Perfect for feeding families in need.",
+        category: "food",
+        quantity: 50,
+        condition: "good",
+        location: { city: "New York", state: "NY" },
+        donorId: createdUsers[0]._id,
+        status: "available",
+        expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+      {
+        title: "Winter Clothes Collection",
+        description: "Jackets, sweaters, and warm clothing for winter season.",
+        category: "clothes",
+        quantity: 100,
+        condition: "good",
+        location: { city: "San Francisco", state: "CA" },
+        donorId: createdUsers[1]._id,
+        status: "available",
+      },
+      {
+        title: "Children's Story Books",
+        description: "Educational storybooks and novels for children aged 3-10 years.",
+        category: "books",
+        quantity: 75,
+        condition: "good",
+        location: { city: "Chicago", state: "IL" },
+        donorId: createdUsers[2]._id,
+        status: "available",
+      },
+      {
+        title: "Laptop and Tablets",
+        description: "Gently used laptops and tablets for students.",
+        category: "electronics",
+        quantity: 10,
+        condition: "good",
+        location: { city: "New York", state: "NY" },
+        donorId: createdUsers[0]._id,
+        status: "available",
+      },
+      {
+        title: "Canned Food Items",
+        description: "Non-perishable canned food items including beans, vegetables, and soup.",
+        category: "food",
+        quantity: 200,
+        condition: "good",
+        location: { city: "San Francisco", state: "CA" },
+        donorId: createdUsers[1]._id,
+        status: "available",
+        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      },
+      {
+        title: "Office Furniture",
+        description: "Desks, chairs, and shelves in good condition.",
+        category: "furniture",
+        quantity: 15,
+        condition: "good",
+        location: { city: "Chicago", state: "IL" },
+        donorId: createdUsers[2]._id,
+        status: "available",
+      },
+    ];
+
+    await Donation.insertMany(demoDonations);
+    console.log("✅ Created 6 demo donations\n");
   } catch (error) {
     console.error("❌ Error initializing seed data:", error);
   }
@@ -409,6 +478,98 @@ app.get("/api/leaderboard", async (req, res) => {
   } catch (err) {
     console.error("Leaderboard error:", err);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ============================================
+// SEED DONATIONS (for demo purposes)
+// ============================================
+app.post("/api/seed-donations", async (req, res) => {
+  try {
+    // Get demo users
+    const donor1 = await User.findOne({ email: "donor@example.com" });
+    const donor2 = await User.findOne({ email: "organisation@example.com" });
+    const donor3 = await User.findOne({ email: "volunteer@example.com" });
+
+    if (!donor1 || !donor2 || !donor3) {
+      return res.status(400).json({ message: "Demo users not found. Please ensure seed data exists." });
+    }
+
+    // Create demo donations
+    const demoDonations = [
+      {
+        title: "Fresh Vegetables & Fruits",
+        description: "Organic vegetables and fruits. Perfect for feeding families in need.",
+        category: "food",
+        quantity: 50,
+        condition: "good",
+        location: { city: "New York", state: "NY" },
+        donorId: donor1._id,
+        status: "available",
+        expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+      {
+        title: "Winter Clothes Collection",
+        description: "Jackets, sweaters, and warm clothing for winter season.",
+        category: "clothes",
+        quantity: 100,
+        condition: "good",
+        location: { city: "San Francisco", state: "CA" },
+        donorId: donor2._id,
+        status: "available",
+      },
+      {
+        title: "Children's Story Books",
+        description: "Educational storybooks and novels for children aged 3-10 years.",
+        category: "books",
+        quantity: 75,
+        condition: "good",
+        location: { city: "Chicago", state: "IL" },
+        donorId: donor3._id,
+        status: "available",
+      },
+      {
+        title: "Laptop and Tablets",
+        description: "Gently used laptops and tablets for students.",
+        category: "electronics",
+        quantity: 10,
+        condition: "good",
+        location: { city: "New York", state: "NY" },
+        donorId: donor1._id,
+        status: "available",
+      },
+      {
+        title: "Canned Food Items",
+        description: "Non-perishable canned food items including beans, vegetables, and soup.",
+        category: "food",
+        quantity: 200,
+        condition: "good",
+        location: { city: "San Francisco", state: "CA" },
+        donorId: donor2._id,
+        status: "available",
+        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      },
+      {
+        title: "Office Furniture",
+        description: "Desks, chairs, and shelves in good condition.",
+        category: "furniture",
+        quantity: 15,
+        condition: "good",
+        location: { city: "Chicago", state: "IL" },
+        donorId: donor3._id,
+        status: "available",
+      },
+    ];
+
+    const createdDonations = await Donation.insertMany(demoDonations);
+    res.json({ 
+      message: "Demo donations created successfully", 
+      count: createdDonations.length,
+      donations: createdDonations 
+    });
+  } catch (err) {
+    console.error("Seed donations error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 });
 
