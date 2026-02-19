@@ -10,6 +10,7 @@ const DonationDetail = ({ donationId, token, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [recipientEmail, setRecipientEmail] = useState("");
   const [peopleHelped, setPeopleHelped] = useState(1);
+  const [donationNotes, setDonationNotes] = useState("");
   const [distributing, setDistributing] = useState(false);
 
   useEffect(() => {
@@ -300,6 +301,17 @@ const DonationDetail = ({ donationId, token, onClose }) => {
                 onChange={(e) => setPeopleHelped(e.target.value)}
                 className="form-input"
                 min="1"
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: "1rem" }}>
+              <label className="form-label">Donation Details / Notes</label>
+              <textarea
+                value={donationNotes}
+                onChange={(e) => setDonationNotes(e.target.value)}
+                className="form-input"
+                placeholder="Add any additional details about the donation distribution..."
+                rows="3"
+                style={{ resize: "vertical" }}
               />
             </div>
             <button

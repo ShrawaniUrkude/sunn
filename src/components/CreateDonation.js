@@ -91,7 +91,7 @@ const CreateDonation = ({ onSuccess, token }) => {
               boxShadow: "0 8px 30px rgba(72,187,120,0.3)",
             }}
           >
-            \u2795
+            ➕
           </div>
           <h1
             style={{
@@ -165,11 +165,11 @@ const CreateDonation = ({ onSuccess, token }) => {
                   className="form-input"
                   style={{ cursor: "pointer" }}
                 >
-                  <option value="food">\ud83c\udf5e Food</option>
-                  <option value="clothes">\ud83d\udc55 Clothes</option>
-                  <option value="toys">\ud83e\uddf8 Toys</option>
-                  <option value="essentials">\ud83c\udfe5 Essentials</option>
-                  <option value="other">\ud83d\udce6 Other</option>
+                  <option value="food">🍞 Food</option>
+                  <option value="clothes">👕 Clothes</option>
+                  <option value="toys">🧸 Toys</option>
+                  <option value="essentials">🏥 Essentials</option>
+                  <option value="other">📦 Other</option>
                 </select>
               </div>
               <div className="form-group">
@@ -258,7 +258,7 @@ const CreateDonation = ({ onSuccess, token }) => {
                 background: "linear-gradient(135deg, #48bb78, #38a169)",
               }}
             >
-              {loading ? "Creating..." : "\u2795 Create Donation"}
+              {loading ? "Creating..." : "➕ Create Donation"}
             </button>
           </form>
         </div>

@@ -333,11 +333,11 @@ const DonorDashboard = ({ token, user }) => {
           </div>
         </div>
 
-        {/* Urgent Needs Near You Section */}
+        {/* Donation Done Section */}
         {urgentNeeds.length > 0 && (
           <div style={{ marginBottom: "2rem" }}>
             <h3 style={{ fontSize: "1.2rem", fontWeight: 700, marginBottom: "1rem", color: "#1a202c" }}>
-              🚨 Urgent Needs Near You
+              ✅ Donation Done
             </h3>
             <div
               style={{
