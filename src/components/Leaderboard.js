@@ -15,7 +15,7 @@ const Leaderboard = () => {
 
   const fetchLeaderboard = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/points/leaderboard`);
+      const response = await axios.get(`${API_BASE_URL}/leaderboard`);
       setLeaderboard(response.data);
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
